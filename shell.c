@@ -9,6 +9,7 @@
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_CYAN "\x1b[36m"
+#define ANSI_COLOR_YELLOW "\x1b[33m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
 typedef char *char_ptr;
@@ -45,6 +46,13 @@ char_ptr *parse_command(char_ptr instruction)
   command[c_count] = NULL;
 
   return command;
+}
+
+void handle_cmd_not_found(char *command)
+{
+  printf(ANSI_COLOR_YELLOW "ash: " ANSI_COLOR_RESET);
+  printf("command not found: %s\n", command);
+  exit(127);
 }
 
 void exit_process(int signal)
@@ -117,11 +125,8 @@ int main(void)
     if (pid == 0)
     {
       signal(SIGINT, exit_process);
-
       execvp(command[0], command);
-
-      printf("command not found: %s\n", command[0]);
-      exit(127);
+      handle_cmd_not_found(command[0]);
     }
     else
     {

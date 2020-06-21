@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <limits.h>
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -84,7 +85,10 @@ int handle_built_in(char_ptr *command, int_ptr color_ind)
 
 void prompt(int_ptr color_ind)
 {
-  printf(ANSI_COLOR_CYAN "my-shell ");
+  char cwd[PATH_MAX];
+  getcwd(cwd, sizeof(cwd));
+
+  printf(ANSI_COLOR_CYAN "%s ", cwd);
 
   if (*color_ind)
   {

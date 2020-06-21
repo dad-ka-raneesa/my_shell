@@ -1,12 +1,22 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 
-char *copy_string(char *str, int start, int end)
+#define ANSI_COLOR_RED "\x1b[31m"
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_CYAN "\x1b[36m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
+typedef char *char_ptr;
+typedef int *int_ptr;
+
+char_ptr copy_string(char_ptr str, int start, int end)
 {
-  char *n_str = malloc(sizeof(char) * (end - start));
+  char_ptr n_str = malloc(sizeof(char) * (end - start));
 
   for (int i = start; i < end; i++)
   {
@@ -16,9 +26,9 @@ char *copy_string(char *str, int start, int end)
   return n_str;
 }
 
-char **parse_command(char *instruction)
+char_ptr *parse_command(char_ptr instruction)
 {
-  char **command = malloc(sizeof(char *) * 10);
+  char_ptr *command = malloc(sizeof(char_ptr) * 10);
   int c_count = 0;
 
   int ins_len = strlen(instruction);
@@ -39,13 +49,14 @@ char **parse_command(char *instruction)
 
 void exit_process(int signal)
 {
-  exit(0);
+  exit(130);
 }
 
-int handle_built_in(char **command)
+int handle_built_in(char_ptr *command, int_ptr color_ind)
 {
   if (strcmp(command[0], "") == 0)
   {
+    *color_ind = 1;
     return 1;
   }
 
@@ -63,25 +74,45 @@ int handle_built_in(char **command)
   return 0;
 }
 
+void prompt(int_ptr color_ind)
+{
+  printf(ANSI_COLOR_CYAN "my-shell ");
+
+  if (*color_ind)
+  {
+    printf(ANSI_COLOR_RED "$ ");
+  }
+  else
+  {
+    printf(ANSI_COLOR_GREEN "$ ");
+  }
+
+  printf(ANSI_COLOR_RESET);
+}
+
 int main(void)
 {
   signal(SIGINT, SIG_IGN);
+
+  int_ptr color_ind = malloc(sizeof(int));
+  *color_ind = 0;
 
   while (1)
   {
     char instruction[255];
 
-    printf("my-shell $ ");
+    prompt(color_ind);
     gets(instruction);
 
-    char **command = parse_command(instruction);
+    char_ptr *command = parse_command(instruction);
 
-    if (handle_built_in(command))
+    if (handle_built_in(command, color_ind))
     {
       continue;
     }
 
     int pid = fork();
+    int status;
 
     if (pid == 0)
     {
@@ -94,7 +125,8 @@ int main(void)
     }
     else
     {
-      wait(&pid);
+      wait(&status);
+      *color_ind = WEXITSTATUS(status);
     }
   }
 

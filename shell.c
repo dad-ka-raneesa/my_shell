@@ -7,7 +7,6 @@
 #include <signal.h>
 #include <limits.h>
 #include "alias.h"
-#include "utils.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -16,27 +15,6 @@
 #define ANSI_COLOR_RESET "\x1b[0m"
 
 Alias *aliases = NULL;
-
-char_ptr *parse_command(char_ptr instruction)
-{
-  char_ptr *command = malloc(sizeof(char_ptr) * 10);
-  int c_count = 0;
-
-  int ins_len = strlen(instruction);
-
-  int start = 0;
-  for (int i = 0; i <= ins_len; i++)
-  {
-    if (instruction[i] == 32 || instruction[i] == 0)
-    {
-      command[c_count++] = copy_string(instruction, start, i);
-      start = i + 1;
-    }
-  }
-  command[c_count] = NULL;
-
-  return command;
-}
 
 void handle_cmd_not_found(char_ptr command)
 {
@@ -145,7 +123,7 @@ int main(void)
     prompt(color_ind);
     gets(instruction);
 
-    char_ptr *command = parse_command(instruction);
+    char_ptr *command = parse_command(instruction, ' ');
 
     char_ptr aka = command[0];
     char_ptr actual = get_actual(aliases, aka);

@@ -140,8 +140,8 @@ int main(void)
       continue;
     }
 
-    char *aka = command[0];
-    char *actual = get_actual(aliases, aka);
+    char_ptr aka = command[0];
+    char_ptr actual = get_actual(aliases, aka);
     while (strcmp(aka, actual) != 0)
     {
       strcpy(aka, actual);

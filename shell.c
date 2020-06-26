@@ -6,12 +6,15 @@
 #include <string.h>
 #include <signal.h>
 #include <limits.h>
+#include "alias.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_YELLOW "\x1b[33m"
 #define ANSI_COLOR_RESET "\x1b[0m"
+
+Alias *aliases = NULL;
 
 typedef char *char_ptr;
 typedef int *int_ptr;
@@ -74,6 +77,20 @@ int handle_built_in(char_ptr *command, int_ptr color_ind)
     exit(0);
   }
 
+  if (strcmp(command[0], "alias") == 0)
+  {
+    if (command[1])
+    {
+      add_alias(&aliases, command[1]);
+    }
+    else
+    {
+      show(aliases);
+    }
+
+    return 1;
+  }
+
   if (strcmp(command[0], "cd") == 0)
   {
     chdir(command[1]);
@@ -123,14 +140,22 @@ int main(void)
       continue;
     }
 
+    char *aka = command[0];
+    char *actual = get_actual(aliases, aka);
+    while (strcmp(aka, actual) != 0)
+    {
+      strcpy(aka, actual);
+      actual = get_actual(aliases, actual);
+    }
+
     int pid = fork();
     int status;
 
     if (pid == 0)
     {
       signal(SIGINT, exit_process);
-      execvp(command[0], command);
-      handle_cmd_not_found(command[0]);
+      execvp(actual, command);
+      handle_cmd_not_found(actual);
     }
     else
     {

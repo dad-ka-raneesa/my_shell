@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <limits.h>
 #include "alias.h"
+#include "utils.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -15,21 +16,6 @@
 #define ANSI_COLOR_RESET "\x1b[0m"
 
 Alias *aliases = NULL;
-
-typedef char *char_ptr;
-typedef int *int_ptr;
-
-char_ptr copy_string(char_ptr str, int start, int end)
-{
-  char_ptr n_str = malloc(sizeof(char) * (end - start));
-
-  for (int i = start; i < end; i++)
-  {
-    n_str[i - start] = str[i];
-  }
-
-  return n_str;
-}
 
 char_ptr *parse_command(char_ptr instruction)
 {

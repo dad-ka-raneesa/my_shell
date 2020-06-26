@@ -3,21 +3,9 @@
 #include <string.h>
 #include "alias.h"
 
-char *copy_s(char *str, int start, int end)
+char_ptr *parse_alias(char_ptr exp)
 {
-  char *n_str = malloc(sizeof(char) * (end - start));
-
-  for (int i = start; i < end; i++)
-  {
-    n_str[i - start] = str[i];
-  }
-
-  return n_str;
-}
-
-char **parse_alias(char *exp)
-{
-  char **alias = malloc(sizeof(char *) * 2);
+  char_ptr *alias = malloc(sizeof(char_ptr) * 2);
 
   int ins_len = strlen(exp);
 
@@ -25,8 +13,8 @@ char **parse_alias(char *exp)
   {
     if (exp[i] == 61)
     {
-      alias[0] = copy_s(exp, 0, i);
-      alias[1] = copy_s(exp, i + 1, ins_len);
+      alias[0] = copy_string(exp, 0, i);
+      alias[1] = copy_string(exp, i + 1, ins_len);
       break;
     }
   }
@@ -34,9 +22,9 @@ char **parse_alias(char *exp)
   return alias;
 }
 
-void add_alias(Alias **aliases, char *exp)
+void add_alias(Alias **aliases, char_ptr exp)
 {
-  char **alias = parse_alias(exp);
+  char_ptr *alias = parse_alias(exp);
 
   Alias *p_walk = *aliases;
   Alias *last = NULL;
@@ -70,7 +58,7 @@ void add_alias(Alias **aliases, char *exp)
   strcpy(last->actual, alias[1]);
 }
 
-char *get_actual(Alias *aliases, char *aka)
+char_ptr get_actual(Alias *aliases, char_ptr aka)
 {
   Alias *p_walk = aliases;
 

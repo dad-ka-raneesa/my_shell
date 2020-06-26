@@ -52,11 +52,34 @@ char_ptr *parse_command(char_ptr instruction)
   return command;
 }
 
-void handle_cmd_not_found(char *command)
+void handle_cmd_not_found(char_ptr command)
 {
   printf(ANSI_COLOR_YELLOW "ash: " ANSI_COLOR_RESET);
   printf("command not found: %s\n", command);
   exit(127);
+}
+
+int includes(char *text, char delimiter)
+{
+  int is_found = 0;
+  for (int i = 0; i < strlen(text) && !is_found; i++)
+  {
+    if (text[i] == delimiter)
+    {
+      is_found = 1;
+    }
+  }
+  return is_found;
+}
+
+void handle_directory_not_found(char_ptr *command)
+{
+  char *message = "no such file or directory";
+  if (includes(command[1], '.'))
+  {
+    message = "not a directory";
+  }
+  printf("cd: %s: %s\n", message, command[1]);
 }
 
 void exit_process(int signal)
@@ -93,7 +116,10 @@ int handle_built_in(char_ptr *command, int_ptr color_ind)
 
   if (strcmp(command[0], "cd") == 0)
   {
-    chdir(command[1]);
+    if (chdir(command[1]) == -1)
+    {
+      handle_directory_not_found(command);
+    }
     return 1;
   }
 
@@ -135,17 +161,18 @@ int main(void)
 
     char_ptr *command = parse_command(instruction);
 
-    if (handle_built_in(command, color_ind))
-    {
-      continue;
-    }
-
     char_ptr aka = command[0];
     char_ptr actual = get_actual(aliases, aka);
     while (strcmp(aka, actual) != 0)
     {
       strcpy(aka, actual);
       actual = get_actual(aliases, actual);
+    }
+
+    command[0] = actual;
+    if (handle_built_in(command, color_ind))
+    {
+      continue;
     }
 
     int pid = fork();

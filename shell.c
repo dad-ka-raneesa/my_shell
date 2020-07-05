@@ -68,21 +68,53 @@ void prompt(int_ptr color_ind)
   printf("$ " ANSI_COLOR_RESET);
 }
 
-void handle_file_write(char **args, int index)
+int handle_file_append(char **args, int index, int fd, mode_t mode)
 {
-  int fd = open(args[index + 1], O_WRONLY | O_CREAT, 0644);
-  dup2(fd, 1);
+  int new_fd = open(args[index + 1], mode, 0644);
+  if (new_fd == -1)
+  {
+    perror("zsh: ");
+    return new_fd;
+  }
+  dup2(new_fd, fd);
   args[index] = NULL;
+  return new_fd;
 }
 
-void handle_redirection(char_ptr *command)
+int handle_file_overwrite(char **args, int index, int fd)
+{
+  int new_fd = creat(args[index + 1], 0644);
+  dup2(new_fd, fd);
+  args[index] = NULL;
+  return new_fd;
+}
+
+int handle_redirection(char_ptr *command)
 {
   int index;
   index = includes_array(command, '>');
+  if (index > 0 && strcmp(command[index], ">>") == 0)
+  {
+    return handle_file_append(command, index, 1, O_WRONLY | O_CREAT | O_APPEND);
+  }
+  if (index > 0 && strcmp(command[index], "2>>") == 0)
+  {
+    return handle_file_append(command, index, 2, O_WRONLY | O_CREAT | O_APPEND);
+  }
+  if (index > 0 && strcmp(command[index], "2>") == 0)
+  {
+    return handle_file_overwrite(command, index, 2);
+  }
   if (index > 0)
   {
-    handle_file_write(command, index);
+    return handle_file_overwrite(command, index, 1);
   }
+  index = includes_array(command, '<');
+  if (index > 0)
+  {
+    return handle_file_append(command, index, 0, O_RDONLY);
+  }
+  return 0;
 }
 
 int main(void)
@@ -121,7 +153,9 @@ int main(void)
     if (pid == 0)
     {
       signal(SIGINT, NULL);
-      handle_redirection(command);
+      int new_fd = handle_redirection(command);
+      if (new_fd == -1)
+        exit(1);
       execvp(actual, command);
       handle_cmd_not_found(actual);
     }

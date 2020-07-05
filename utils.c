@@ -52,3 +52,34 @@ char_ptr *parse_command(char_ptr instruction, char key)
 
   return split;
 }
+
+int includes(char_ptr text, char delimiter)
+{
+  int is_found = 0;
+  for (int i = 0; i < strlen(text) && !is_found; i++)
+  {
+    if (text[i] == delimiter)
+    {
+      is_found = 1;
+    }
+  }
+  return is_found;
+}
+
+int includes_array(char_ptr *command, char delimiter)
+{
+  int is_found = 0;
+  int index = -1;
+  int i = 0;
+  while (!is_found && (command[i]))
+  {
+    if (includes(command[i], delimiter))
+    {
+      is_found = 1;
+      index = i;
+    }
+    i++;
+  }
+
+  return index;
+}

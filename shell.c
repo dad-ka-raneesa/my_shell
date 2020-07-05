@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <limits.h>
 #include "alias.h"
+#include <fcntl.h>
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -21,19 +22,6 @@ void handle_cmd_not_found(char_ptr command)
   printf(ANSI_COLOR_YELLOW "zsh: " ANSI_COLOR_RESET);
   printf("command not found: %s\n", command);
   exit(127);
-}
-
-int includes(char *text, char delimiter)
-{
-  int is_found = 0;
-  for (int i = 0; i < strlen(text) && !is_found; i++)
-  {
-    if (text[i] == delimiter)
-    {
-      is_found = 1;
-    }
-  }
-  return is_found;
 }
 
 int handle_built_in(char_ptr *command, int_ptr color_ind)
@@ -75,19 +63,26 @@ void prompt(int_ptr color_ind)
 {
   char cwd[PATH_MAX];
   getcwd(cwd, sizeof(cwd));
-
   printf(ANSI_COLOR_CYAN "%s ", cwd);
+  printf(*color_ind ? ANSI_COLOR_RED : ANSI_COLOR_GREEN);
+  printf("$ " ANSI_COLOR_RESET);
+}
 
-  if (*color_ind)
-  {
-    printf(ANSI_COLOR_RED "$ ");
-  }
-  else
-  {
-    printf(ANSI_COLOR_GREEN "$ ");
-  }
+void handle_file_write(char **args, int index)
+{
+  int fd = open(args[index + 1], O_WRONLY | O_CREAT, 0644);
+  dup2(fd, 1);
+  args[index] = NULL;
+}
 
-  printf(ANSI_COLOR_RESET);
+void handle_redirection(char_ptr *command)
+{
+  int index;
+  index = includes_array(command, '>');
+  if (index > 0)
+  {
+    handle_file_write(command, index);
+  }
 }
 
 int main(void)
@@ -126,13 +121,13 @@ int main(void)
     if (pid == 0)
     {
       signal(SIGINT, NULL);
+      handle_redirection(command);
       execvp(actual, command);
       handle_cmd_not_found(actual);
     }
     else
     {
-      wait(&status);
-      *color_ind = WEXITSTATUS(status);
+      waitpid(pid, color_ind, 0);
     }
   }
 

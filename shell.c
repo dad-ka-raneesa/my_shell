@@ -18,7 +18,7 @@ Alias *aliases = NULL;
 
 void handle_cmd_not_found(char_ptr command)
 {
-  printf(ANSI_COLOR_YELLOW "ash: " ANSI_COLOR_RESET);
+  printf(ANSI_COLOR_YELLOW "zsh: " ANSI_COLOR_RESET);
   printf("command not found: %s\n", command);
   exit(127);
 }
@@ -36,26 +36,10 @@ int includes(char *text, char delimiter)
   return is_found;
 }
 
-void handle_directory_not_found(char_ptr *command)
-{
-  char *message = "no such file or directory";
-  if (includes(command[1], '.'))
-  {
-    message = "not a directory";
-  }
-  printf("cd: %s: %s\n", message, command[1]);
-}
-
-void exit_process(int signal)
-{
-  exit(130);
-}
-
 int handle_built_in(char_ptr *command, int_ptr color_ind)
 {
   if (strcmp(command[0], "") == 0)
   {
-    *color_ind = 1;
     return 1;
   }
 
@@ -74,19 +58,16 @@ int handle_built_in(char_ptr *command, int_ptr color_ind)
     {
       show(aliases);
     }
-
     return 1;
   }
 
   if (strcmp(command[0], "cd") == 0)
   {
-    if (chdir(command[1]) == -1)
-    {
-      handle_directory_not_found(command);
-    }
+    *color_ind = chdir(command[1]);
+    if (*color_ind)
+      perror("cd");
     return 1;
   }
-
   return 0;
 }
 
@@ -144,7 +125,7 @@ int main(void)
 
     if (pid == 0)
     {
-      signal(SIGINT, exit_process);
+      signal(SIGINT, NULL);
       execvp(actual, command);
       handle_cmd_not_found(actual);
     }

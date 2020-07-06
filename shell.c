@@ -117,6 +117,42 @@ int handle_redirection(char_ptr *command)
   return 0;
 }
 
+void executeCommand(char_ptr instruction, int_ptr color_ind)
+{
+  char_ptr *command = parse_command(instruction, ' ');
+
+  char_ptr aka = command[0];
+  char_ptr actual = get_actual(aliases, aka);
+  while (strcmp(aka, actual) != 0)
+  {
+    strcpy(aka, actual);
+    actual = get_actual(aliases, actual);
+  }
+
+  command[0] = actual;
+  if (handle_built_in(command, color_ind))
+  {
+    return;
+  }
+
+  int pid = fork();
+  int status;
+
+  if (pid == 0)
+  {
+    signal(SIGINT, NULL);
+    int new_fd = handle_redirection(command);
+    if (new_fd == -1)
+      exit(1);
+    execvp(command[0], command);
+    handle_cmd_not_found(command[0]);
+  }
+  else
+  {
+    waitpid(pid, color_ind, 0);
+  }
+}
+
 int main(void)
 {
   signal(SIGINT, SIG_IGN);
@@ -130,39 +166,7 @@ int main(void)
 
     prompt(color_ind);
     gets(instruction);
-
-    char_ptr *command = parse_command(instruction, ' ');
-
-    char_ptr aka = command[0];
-    char_ptr actual = get_actual(aliases, aka);
-    while (strcmp(aka, actual) != 0)
-    {
-      strcpy(aka, actual);
-      actual = get_actual(aliases, actual);
-    }
-
-    command[0] = actual;
-    if (handle_built_in(command, color_ind))
-    {
-      continue;
-    }
-
-    int pid = fork();
-    int status;
-
-    if (pid == 0)
-    {
-      signal(SIGINT, NULL);
-      int new_fd = handle_redirection(command);
-      if (new_fd == -1)
-        exit(1);
-      execvp(actual, command);
-      handle_cmd_not_found(actual);
-    }
-    else
-    {
-      waitpid(pid, color_ind, 0);
-    }
+    executeCommand(instruction, color_ind);
   }
 
   return 0;

@@ -69,7 +69,7 @@ void prompt(int_ptr color_ind)
   printf("$ " ANSI_COLOR_RESET);
 }
 
-void executeCommand(char_ptr instruction, int_ptr color_ind)
+void executeCommand(char_ptr instruction, int_ptr color_ind, int *pipes, int *fd_set)
 {
   char_ptr *command = parse_command(instruction, ' ');
 
@@ -93,6 +93,10 @@ void executeCommand(char_ptr instruction, int_ptr color_ind)
   if (pid == 0)
   {
     signal(SIGINT, NULL);
+    fd_set[0] && close(pipes[1]);
+    fd_set[1] && dup2(pipes[0], 0);
+    fd_set[2] && close(pipes[0]);
+    fd_set[3] && dup2(pipes[1], 1);
     int new_fd = handle_redirection(command);
     if (new_fd == -1)
       exit(1);
@@ -103,6 +107,30 @@ void executeCommand(char_ptr instruction, int_ptr color_ind)
   {
     waitpid(pid, color_ind, 0);
   }
+}
+
+void execute(char_ptr instruction, int_ptr color_ind)
+{
+  int pipes[2];
+  pipe(pipes);
+  int fd_set[] = {0, 0, 0, 0};
+  if (!includes(instruction, '|'))
+  {
+    executeCommand(instruction, color_ind, pipes, fd_set);
+    return;
+  }
+  char_ptr *piped_args = parse_command(instruction, '|');
+  fd_set[2] = 1;
+  fd_set[3] = 1;
+  executeCommand(piped_args[0], color_ind, pipes, fd_set);
+  close(pipes[1]);
+
+  fd_set[0] = 1;
+  fd_set[1] = 1;
+  fd_set[2] = 0;
+  fd_set[3] = 0;
+  executeCommand(piped_args[1], color_ind, pipes, fd_set);
+  close(pipes[0]);
 }
 
 int main(void)
@@ -118,7 +146,7 @@ int main(void)
 
     prompt(color_ind);
     gets(instruction);
-    executeCommand(instruction, color_ind);
+    execute(instruction, color_ind);
   }
 
   return 0;

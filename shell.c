@@ -71,7 +71,8 @@ void prompt(int_ptr color_ind)
 
 void executeCommand(char_ptr instruction, int_ptr color_ind, int *pipes, int *fd_set)
 {
-  char_ptr *command = parse_command(instruction, ' ');
+  char_ptr trimmed_instruction = trim(instruction);
+  char_ptr *command = parse_command(trimmed_instruction, ' ');
 
   char_ptr aka = command[0];
   char_ptr actual = get_actual(aliases, aka);

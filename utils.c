@@ -1,6 +1,26 @@
-#include <stdlib.h>
-#include <string.h>
 #include "utils.h"
+
+char_ptr ltrim(char_ptr string)
+{
+  while (isspace(*string))
+    string++;
+  return string;
+}
+
+char_ptr rtrim(char_ptr string)
+{
+  int i;
+  for (i = strlen(string) - 1; isspace(string[i]); i--)
+  {
+  }
+  string[i + 1] = '\0';
+  return string;
+}
+
+char_ptr trim(char_ptr string)
+{
+  return rtrim(ltrim(string));
+}
 
 char_ptr copy_string(char_ptr str, int start, int end)
 {

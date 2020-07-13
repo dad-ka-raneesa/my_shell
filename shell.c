@@ -69,7 +69,7 @@ void prompt(int_ptr color_ind)
   printf("$ " ANSI_COLOR_RESET);
 }
 
-void executeCommand(char_ptr instruction, int_ptr color_ind, int *pipes, int *fd_set)
+void executeCommand(char_ptr instruction, int_ptr color_ind, int read_fd, int write_fd, int *fd_set)
 {
   char_ptr trimmed_instruction = trim(instruction);
   char_ptr *command = parse_command(trimmed_instruction, ' ');
@@ -94,10 +94,8 @@ void executeCommand(char_ptr instruction, int_ptr color_ind, int *pipes, int *fd
   if (pid == 0)
   {
     signal(SIGINT, NULL);
-    fd_set[0] && close(pipes[1]);
-    fd_set[0] && dup2(pipes[0], 0);
-    fd_set[1] && close(pipes[0]);
-    fd_set[1] && dup2(pipes[1], 1);
+    fd_set[0] && dup2(read_fd, 0);
+    fd_set[1] && dup2(write_fd, 1);
     int new_fd = handle_redirection(command);
     if (new_fd == -1)
       exit(1);
@@ -110,25 +108,46 @@ void executeCommand(char_ptr instruction, int_ptr color_ind, int *pipes, int *fd
   }
 }
 
-void execute(char_ptr instruction, int_ptr color_ind)
+void handle_piping(char_ptr instruction, int_ptr color_ind, int_ptr pipes, int_ptr fd_set, int length)
 {
-  int pipes[2];
-  pipe(pipes);
-  int fd_set[] = {0, 0};
-  if (!includes(instruction, '|'))
+  for (size_t i = 0; i < 2 * (length - 1); i += 2)
   {
-    executeCommand(instruction, color_ind, pipes, fd_set);
-    return;
+    pipe(&pipes[i]);
   }
   char_ptr *piped_args = parse_command(instruction, '|');
   fd_set[1] = 1;
-  executeCommand(piped_args[0], color_ind, pipes, fd_set);
+  executeCommand(piped_args[0], color_ind, 0, pipes[1], fd_set);
   close(pipes[1]);
 
   fd_set[0] = 1;
+  fd_set[1] = 1;
+  int read_fd_pos = 0;
+  int write_fd_pos = 3;
+  for (size_t i = 1; i < length - 1; i++)
+  {
+    executeCommand(piped_args[i], color_ind, pipes[read_fd_pos], pipes[write_fd_pos], fd_set);
+    close(pipes[read_fd_pos]);
+    close(pipes[write_fd_pos]);
+    read_fd_pos += 2;
+    write_fd_pos += 2;
+  }
+  fd_set[0] = 1;
   fd_set[1] = 0;
-  executeCommand(piped_args[1], color_ind, pipes, fd_set);
-  close(pipes[0]);
+  executeCommand(piped_args[length - 1], color_ind, pipes[read_fd_pos], 1, fd_set);
+  close(pipes[read_fd_pos]);
+}
+
+void execute(char_ptr instruction, int_ptr color_ind)
+{
+  int length = get_no_of_commands(instruction, '|');
+  int pipes[2 * (length - 1)];
+  int fd_set[] = {0, 0};
+  if (includes(instruction, '|'))
+  {
+    handle_piping(instruction, color_ind, pipes, fd_set, length);
+    return;
+  }
+  executeCommand(instruction, color_ind, pipes[0], pipes[1], fd_set);
 }
 
 int main(void)

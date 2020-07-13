@@ -22,6 +22,19 @@ char_ptr trim(char_ptr string)
   return rtrim(ltrim(string));
 }
 
+int get_no_of_commands(char_ptr string, char splitBy)
+{
+  int word_count = 1;
+  for (int i = 0; i < strlen(string); ++i)
+  {
+    if (string[i] == splitBy)
+    {
+      word_count++;
+    }
+  }
+  return word_count;
+}
+
 char_ptr copy_string(char_ptr str, int start, int end)
 {
   char_ptr n_str = malloc(sizeof(char) * (end - start));
@@ -54,7 +67,7 @@ char_ptr *parse_alias(char_ptr exp, char key)
 
 char_ptr *parse_command(char_ptr instruction, char key)
 {
-  char_ptr *split = malloc(sizeof(char_ptr) * 10);
+  char_ptr *split = malloc(sizeof(char_ptr) * get_no_of_commands(instruction, key) + 1);
   int s_count = 0;
 
   int ins_len = strlen(instruction);
